@@ -1,3 +1,17 @@
+"""
+Contacts API.
+
+This module defines the `/contacts` endpoints for managing user contacts,
+including listing, retrieving, creating, updating, and deleting contacts.
+
+Endpoints:
+    GET /contacts: Retrieve a list of contacts.
+    GET /contacts/{contact_id}: Retrieve a single contact by ID.
+    POST /contacts: Create a new contact.
+    PUT /contacts/{contact_id}: Update an existing contact.
+    DELETE /contacts/{contact_id}: Remove a contact.
+"""
+
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends, status
@@ -19,6 +33,15 @@ async def get_contacts(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """
+    Retrieve a list of contacts for the authenticated user.
+
+    :param skip: Number of records to skip (pagination).
+    :param limit: Maximum number of records to return.
+    :param db: Asynchronous database session.
+    :param user: Currently authenticated user.
+    :return: List of ContactResponse objects.
+    """
     contact_service = ContactService(db)
     contacts = await contact_service.get_contacts(skip, limit, user=user)
     return contacts
@@ -30,6 +53,15 @@ async def read_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """
+    Retrieve a single contact by its ID.
+
+    :param contact_id: ID of the contact to retrieve.
+    :param db: Asynchronous database session.
+    :param user: Currently authenticated user.
+    :return: ContactResponse object.
+    :raises HTTPException: 404 if contact not found.
+    """
     contact_service = ContactService(db)
     contact = await contact_service.get_contact(contact_id, user=user)
     if contact is None:
@@ -45,6 +77,14 @@ async def create_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """
+    Create a new contact for the authenticated user.
+
+    :param body: ContactBase schema containing contact data.
+    :param db: Asynchronous database session.
+    :param user: Currently authenticated user.
+    :return: The created ContactResponse object.
+    """
     contact_service = ContactService(db)
     return await contact_service.create_contact(body, user=user)
 
@@ -56,6 +96,16 @@ async def update_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """
+    Update an existing contact.
+
+    :param body: ContactBase schema with updated contact data.
+    :param contact_id: ID of the contact to update.
+    :param db: Asynchronous database session.
+    :param user: Currently authenticated user.
+    :return: The updated ContactResponse object.
+    :raises HTTPException: 404 if contact not found.
+    """
     contact_service = ContactService(db)
     contact = await contact_service.update_contact(contact_id, body, user=user)
     if contact is None:
@@ -71,6 +121,15 @@ async def remove_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """
+    Delete a contact by its ID.
+
+    :param contact_id: ID of the contact to delete.
+    :param db: Asynchronous database session.
+    :param user: Currently authenticated user.
+    :return: The deleted ContactResponse object.
+    :raises HTTPException: 404 if contact not found.
+    """
     contact_service = ContactService(db)
     contact = await contact_service.remove_contact(contact_id, user=user)
     if contact is None:

@@ -1,3 +1,13 @@
+"""
+Email service module.
+
+This module provides functionality for sending emails using FastAPI-Mail,
+including sending verification emails with JWT tokens for email confirmation.
+
+Functions:
+    send_email: Send an email with a verification token using a specified template.
+"""
+
 from pathlib import Path
 
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
@@ -23,6 +33,17 @@ conf = ConnectionConfig(
 
 
 async def send_email(email: EmailStr, username: str, host: str):
+    """
+    Send a verification email to a user.
+
+    Generates a JWT token for email verification and sends it using
+    the "verify_email.html" template via FastAPI-Mail.
+
+    :param email: The recipient's email address.
+    :param username: The recipient's username to include in the email template.
+    :param host: The host URL to include in the verification link.
+    :raises ConnectionErrors: If there is a failure connecting to the mail server.
+    """
     try:
         token_verification = create_email_token({"sub": email})
         message = MessageSchema(

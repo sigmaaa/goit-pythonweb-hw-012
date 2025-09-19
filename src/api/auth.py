@@ -1,9 +1,23 @@
+"""
+Authentication API.
+
+This module defines the `/auth` endpoints for user registration, login,
+email confirmation, and requesting email verification links. It integrates
+with the UserService and email service to handle user authentication
+and email confirmation.
+
+Endpoints:
+    POST /auth/register: Register a new user.
+    POST /auth/login: Authenticate a user and return a JWT token.
+    GET /auth/confirmed_email/{token}: Confirm user's email from token.
+    POST /auth/request_email: Request a new email confirmation link.
+"""
+
 from fastapi import (
     APIRouter,
     HTTPException,
     Depends,
     status,
-    Security,
     BackgroundTasks,
     Request,
 )
@@ -26,6 +40,19 @@ async def register_user(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    """
+    Register a new user and send a verification email.
+
+    Checks for duplicate email or username, hashes the password, creates the user,
+    and schedules a background task to send a confirmation email.
+
+    :param user_data: UserCreate schema containing registration data.
+    :param background_tasks: FastAPI BackgroundTasks for sending email asynchronously.
+    :param request: FastAPI Request object to get the base URL.
+    :param db: Database session dependency.
+    :return: The created User object.
+    :raises HTTPException: If the email or username already exists.
+    """
     user_service = UserService(db)
 
     email_user = await user_service.get_user_by_email(user_data.email)
@@ -53,6 +80,17 @@ async def register_user(
 async def login_user(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
+    """
+    Authenticate a user and return a JWT access token.
+
+    Verifies username, password, and email confirmation status. If successful,
+    generates and returns an access token.
+
+    :param form_data: OAuth2PasswordRequestForm containing username and password.
+    :param db: Database session dependency.
+    :return: Dictionary containing access_token and token_type.
+    :raises HTTPException: If credentials are invalid or email is not confirmed.
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_username(form_data.username)
     if not user or not Hash().verify_password(form_data.password, user.hashed_password):
@@ -72,6 +110,17 @@ async def login_user(
 
 @router.get("/confirmed_email/{token}")
 async def confirmed_email(token: str, db: Session = Depends(get_db)):
+    """
+    Confirm a user's email address using a verification token.
+
+    Decodes the token, checks if the user exists and whether the email is already confirmed.
+    Marks the email as confirmed if valid.
+
+    :param token: Email verification JWT token.
+    :param db: Database session dependency.
+    :return: Dictionary with a confirmation message.
+    :raises HTTPException: If the token is invalid or verification fails.
+    """
     email = await get_email_from_token(token)
     user_service = UserService(db)
     user = await user_service.get_user_by_email(email)
@@ -92,6 +141,18 @@ async def request_email(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    """
+    Request a new email verification link.
+
+    Checks if the user exists and whether the email is already confirmed.
+    If not, schedules a background task to send a new verification email.
+
+    :param body: RequestEmail schema containing the user's email.
+    :param background_tasks: FastAPI BackgroundTasks for sending email asynchronously.
+    :param request: FastAPI Request object to get the base URL.
+    :param db: Database session dependency.
+    :return: Dictionary with a status message.
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_email(body.email)
 
