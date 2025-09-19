@@ -1,4 +1,4 @@
-# goit-pythonweb-hw-10
+# goit-pythonweb-hw-12
 Master of Science (Neoversity): Fullstack Web Development with Python - Homework №10
 
 # FastAPI Contacts App
