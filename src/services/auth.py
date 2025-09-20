@@ -28,7 +28,7 @@ from src.database.db import get_db, get_redis
 from src.conf.config import config
 from src.services.users import UserService
 from src.schemas import User
-
+from src.database.models import UserRole
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
@@ -103,6 +103,12 @@ async def get_current_user(
         ex=3600,
     )
     return user
+
+
+def get_current_admin_user(current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Insufficient access rights")
+    return current_user
 
 
 def create_email_token(data: dict) -> str:

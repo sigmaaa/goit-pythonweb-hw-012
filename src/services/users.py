@@ -11,9 +11,9 @@ Classes:
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libgravatar import Gravatar
-
+from fastapi import HTTPException
 from src.repository.users import UserRepository
-from src.schemas import UserCreate
+from src.schemas import UserCreate, UserRole
 from src.utils.hash_utility import Hash
 
 
@@ -100,6 +100,12 @@ class UserService:
         :param url: The new avatar URL to set for the user.
         :return: The updated `User` object with the new avatar URL.
         """
+        user = await self.repository.get_user_by_email(email)
+        if user.role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=403, detail="Only admins can change their avatar"
+            )
+        user.avatar = url
         return await self.repository.update_avatar_url(email, url)
 
     async def reset_password(self, email: str, new_password: str):

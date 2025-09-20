@@ -1,10 +1,16 @@
 from datetime import datetime, date
-from sqlalchemy import Integer, Boolean, String, Date, DateTime, ForeignKey, func
+from sqlalchemy import Integer, Boolean, String, Date, DateTime, ForeignKey, Enum, func
 from sqlalchemy.orm import mapped_column, Mapped, DeclarativeBase, relationship
+from enum import StrEnum
 
 
 class Base(DeclarativeBase):
     pass
+
+
+class UserRole(StrEnum):
+    USER = "user"
+    ADMIN = "admin"
 
 
 class User(Base):
@@ -17,6 +23,9 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     avatar: Mapped[str | None] = mapped_column(String(255), nullable=True)
     confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole), default=UserRole.USER, nullable=False
+    )
     contacts: Mapped[list["Contact"]] = relationship(back_populates="user")
 
 
@@ -26,7 +35,6 @@ class Contact(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     surname: Mapped[str] = mapped_column(String(50), nullable=False)
-
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     phone: Mapped[str] = mapped_column(String(20), nullable=False)
     birthday: Mapped[date] = mapped_column(Date, nullable=False)
