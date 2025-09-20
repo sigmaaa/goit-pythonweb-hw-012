@@ -105,3 +105,16 @@ class UserRepository:
         await self.db.commit()
         await self.db.refresh(user)
         return user
+
+    async def update_password(self, user, hashed_password: str):
+        """
+        Update the password hash for a user.
+
+        :param user: The User object to update.
+        :param hashed_password: The new hashed password.
+        :return: The updated User object.
+        """
+        user.hashed_password = hashed_password
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user

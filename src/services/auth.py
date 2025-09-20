@@ -18,41 +18,16 @@ from datetime import datetime, timedelta, UTC
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status
-from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
+from redis.asyncio import Redis
 
-from src.database.db import get_db
+
+from src.database.db import get_db, get_redis
 from src.conf.config import config
 from src.services.users import UserService
-
-
-class Hash:
-    """
-    Utility class for password hashing and verification using bcrypt.
-    """
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        """
-        Verify a plain password against a hashed password.
-
-        :param plain_password: The plain text password to verify.
-        :param hashed_password: The hashed password for comparison.
-        :return: True if the password matches, False otherwise.
-        """
-        return self.pwd_context.verify(plain_password, hashed_password)
-
-    def get_password_hash(self, password: str) -> str:
-        """
-        Hash a plain password.
-
-        :param password: The plain text password to hash.
-        :return: The hashed password.
-        """
-        return self.pwd_context.hash(password)
+from src.schemas import User
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -79,13 +54,21 @@ async def create_access_token(data: dict, expires_delta: Optional[int] = None) -
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ):
     """
-    Retrieve the current user from the JWT access token.
+    Retrieve the current user from the JWT access token with Redis caching.
+
+    Steps:
+        1. Decode JWT and extract the username.
+        2. Try Redis cache (`user:username:{username}`).
+        3. If not cached, query the database and store result in Redis.
 
     :param token: JWT token provided in the request header.
     :param db: Database session dependency.
+    :param redis: Redis client dependency.
     :raises HTTPException: If the token is invalid or user does not exist.
     :return: The authenticated user object.
     """
@@ -96,20 +79,29 @@ async def get_current_user(
     )
 
     try:
-        # Decode JWT
         payload = jwt.decode(
             token, config.JWT_SECRET, algorithms=[config.JWT_ALGORITHM]
         )
-        username = payload["sub"]
+        username = payload.get("sub")
         if username is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
-    user_service = UserService(db)
+    cached_user = await redis.get(f"user:username:{username}")
+    if cached_user:
+        return User.model_validate_json(cached_user)
+
+    user_service = UserService(db, redis)
     user = await user_service.get_user_by_username(username)
     if user is None:
         raise credentials_exception
+
+    await redis.set(
+        f"user:username:{user.username}",
+        User.model_validate(user).model_dump_json(),
+        ex=3600,
+    )
     return user
 
 

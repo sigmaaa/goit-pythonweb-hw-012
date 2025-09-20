@@ -14,6 +14,7 @@ from libgravatar import Gravatar
 
 from src.repository.users import UserRepository
 from src.schemas import UserCreate
+from src.utils.hash_utility import Hash
 
 
 class UserService:
@@ -100,3 +101,18 @@ class UserService:
         :return: The updated `User` object with the new avatar URL.
         """
         return await self.repository.update_avatar_url(email, url)
+
+    async def reset_password(self, email: str, new_password: str):
+        """
+        Reset a user's password.
+
+        :param email: The email of the user who requested the reset.
+        :param new_password: New plain password to hash and save.
+        :return: Updated User object or None if not found.
+        """
+        user = await self.repository.get_user_by_email(email)
+        if not user:
+            return None
+
+        hashed_password = Hash().get_password_hash(new_password)
+        return await self.repository.update_password(user, hashed_password)

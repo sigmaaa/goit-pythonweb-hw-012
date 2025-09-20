@@ -24,11 +24,16 @@ from fastapi import (
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from src.schemas import UserCreate, Token, User
-from src.services.auth import create_access_token, get_email_from_token, Hash
+from src.services.auth import (
+    create_access_token,
+    get_email_from_token,
+    create_email_token,
+)
+from src.utils.hash_utility import Hash
 from src.services.users import UserService
 from src.database.db import get_db
 from src.services.email import send_email
-from src.schemas import RequestEmail
+from src.schemas import RequestEmail, ForgotPasswordRequest, ResetPasswordRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -166,3 +171,46 @@ async def request_email(
             send_email, user.email, user.username, request.base_url
         )
     return {"message": "Перевірте свою електронну пошту для підтвердження"}
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    Request a password reset link sent via email.
+
+    Sends a reset token to the user's email if the user exists.
+    """
+    user_service = UserService(db)
+    user = await user_service.get_user_by_email(body.email)
+    if not user:
+        return {"message": "No user with such an email"}
+
+    # Generate token
+    token = create_email_token({"sub": user.email})
+
+    # Send reset email in background
+    reset_link = f"{request.base_url}reset-password?token={token}"
+    background_tasks.add_task(send_email, user.email, user.username, reset_link)
+
+    return {"message": "a reset link has been sent."}
+
+
+@router.post("/reset-password")
+async def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Reset the user's password using a valid reset token.
+    """
+    email = await get_email_from_token(body.token)
+
+    user_service = UserService(db)
+    updated_user = await user_service.reset_password(email, body.new_password)
+
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"message": "Password has been reset successfully."}

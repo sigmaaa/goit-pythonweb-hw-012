@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from redis.asyncio import Redis
+
 from src.conf.config import config
 
 
@@ -37,3 +39,7 @@ sessionmanager = DatabaseSessionManager(config.DB_URL)
 async def get_db():
     async with sessionmanager.session() as session:
         yield session
+
+
+async def get_redis() -> Redis:
+    return Redis(host=config.REDIS_HOST, port=config.REDIS_PORT, decode_responses=True)

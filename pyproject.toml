@@ -25,6 +25,7 @@ sphinx = "^8.2.3"
 httpx = "^0.28.1"
 aiosqlite = "^0.21.0"
 pytest-cov = "^7.0.0"
+redis = "^6.4.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2"

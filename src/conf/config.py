@@ -46,5 +46,8 @@ class Config:
     CLD_API_KEY = os.getenv("CLOUDINARY_API_KEY")
     CLD_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
 
+    REDIS_HOST = os.getenv("REDIS_HOST")
+    REDIS_PORT = os.getenv("REDIS_PORT")
+
 
 config = Config()
