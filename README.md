@@ -1,3 +1,4 @@
+![coverage](https://img.shields.io/badge/coverage-77%25-brightgreen)
 # goit-pythonweb-hw-12
 Master of Science (Neoversity): Fullstack Web Development with Python - Homework №10
 
