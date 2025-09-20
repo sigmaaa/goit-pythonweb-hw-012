@@ -88,3 +88,15 @@ class UserService:
         :return: None
         """
         return await self.repository.confirmed_email(email)
+
+    async def update_avatar_url(self, email: str, url: str):
+        """
+        Update the avatar URL of a user.
+
+        This method delegates the update operation to the repository layer.
+
+        :param email: The email of the user whose avatar will be updated.
+        :param url: The new avatar URL to set for the user.
+        :return: The updated `User` object with the new avatar URL.
+        """
+        return await self.repository.update_avatar_url(email, url)

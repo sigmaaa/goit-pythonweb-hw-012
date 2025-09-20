@@ -41,5 +41,10 @@ class Config:
     USE_CREDENTIALS: bool = True
     VALIDATE_CERTS: bool = True
 
+    # Cloud
+    CLD_NAME = os.getenv("CLOUDINARY_NAME")
+    CLD_API_KEY = os.getenv("CLOUDINARY_API_KEY")
+    CLD_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+
 
 config = Config()
