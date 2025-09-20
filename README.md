@@ -1,4 +1,7 @@
 ![coverage](https://img.shields.io/badge/coverage-77%25-brightgreen)
+
+<img width="591" height="727" alt="image" src="https://github.com/user-attachments/assets/1f1c351f-583f-4e5c-bff4-10fb3067cc31" />
+
 # goit-pythonweb-hw-12
 Master of Science (Neoversity): Fullstack Web Development with Python - Homework №10
 
