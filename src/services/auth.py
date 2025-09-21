@@ -92,7 +92,7 @@ async def get_current_user(
     if cached_user:
         return User.model_validate_json(cached_user)
 
-    user_service = UserService(db, redis)
+    user_service = UserService(db)
     user = await user_service.get_user_by_username(username)
     if user is None:
         raise credentials_exception

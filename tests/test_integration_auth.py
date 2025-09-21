@@ -3,13 +3,14 @@ from unittest.mock import Mock
 import pytest
 from sqlalchemy import select
 
-from src.database.models import User
+from src.database.models import User, UserRole
 from tests.conftest import TestingSessionLocal
 
 user_data = {
     "username": "agent007",
     "email": "agent007@gmail.com",
     "password": "12345678",
+    "role": UserRole.ADMIN,
 }
 
 
@@ -21,6 +22,7 @@ def test_signup(client, monkeypatch):
     data = response.json()
     assert data["username"] == user_data["username"]
     assert data["email"] == user_data["email"]
+    assert data["role"] == user_data["role"]
     assert "hashed_password" not in data
     assert "avatar" in data
 

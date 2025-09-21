@@ -1,15 +1,16 @@
 import asyncio
-
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from unittest.mock import AsyncMock, MagicMock
 
 from main import app
-from src.database.models import Base, User
-from src.database.db import get_db
-from src.services.auth import create_access_token, Hash
+from src.database.models import Base, User, UserRole
+from src.database.db import get_db, get_redis
+from src.services.auth import create_access_token
+from src.utils.hash_utility import Hash
 
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
@@ -27,6 +28,7 @@ test_user = {
     "username": "deadpool",
     "email": "deadpool@example.com",
     "password": "12345678",
+    "role": UserRole.ADMIN,
 }
 
 
@@ -43,7 +45,8 @@ def init_models_wrap():
                 email=test_user["email"],
                 hashed_password=hash_password,
                 confirmed=True,
-                avatar="<https://twitter.com/gravatar>",
+                avatar="https://twitter.com/gravatar",
+                role=test_user["role"],
             )
             session.add(current_user)
             await session.commit()
@@ -53,17 +56,26 @@ def init_models_wrap():
 
 @pytest.fixture(scope="module")
 def client():
-    # Dependency override
-
+    # --- override DB ---
     async def override_get_db():
         async with TestingSessionLocal() as session:
             try:
                 yield session
-            except Exception as err:
+            except Exception:
                 await session.rollback()
                 raise
 
     app.dependency_overrides[get_db] = override_get_db
+
+    # --- override Redis (mocked) ---
+    redis_mock = MagicMock()
+    redis_mock.get = AsyncMock(return_value=None)  # default cache miss
+    redis_mock.set = AsyncMock(return_value=True)  # pretend success
+
+    async def override_get_redis():
+        return redis_mock
+
+    app.dependency_overrides[get_redis] = override_get_redis
 
     yield TestClient(app)
 
